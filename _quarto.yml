@@ -3,15 +3,13 @@ project:
   output-dir: docs
 
 website:
-  title: "Time Series Analysis of Ventura County Wildfires"
+  title: "Ventura County Wildfire Analysis"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - href: report.qmd
+      - href: PSTAT_174-Final_Project_Clean.qmd
         text: Full Report
-      - href: README.md
-        text: README
 
 format:
   html:
