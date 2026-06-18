@@ -1,0 +1,651 @@
+---
+title: "Time Series Analysis of Ventura County Wildfires"
+subtitle: "Using SARIMA and ARMAX Models"
+author: "Edgar Gonzalez Martinez - gonzalezmartinez@ucsb.edu"
+date: "2026-06-06"
+date-format: "MMMM D, YYYY"
+affiliation: "PSTAT 174 — University of California, Santa Barbara — Spring 2026"
+abstract: |
+  This project studies monthly wildfire activity in Ventura County, California from February 2000 to December 2020. The wildfire data were aggregated into monthly fire counts and total acres burned. First, I used a SARIMA model to analyze monthly wildfire starts using the transformed series $\log(1+x)$. The selected SARIMA model was $ARIMA(0,1,3)(0,0,1)_{12}$, and the Ljung-Box test suggested that the residuals did not have strong remaining autocorrelation.
+
+  For the second part of the project, I modeled monthly acres burned using an ARMAX model with external predictors. I tested drought conditions from SPI, weather variables from NASA POWER, vegetation greenness using NDVI, and a simplified Santa Ana wind event indicator. BIC selection chose lagged severe drought, Santa Ana-like wind events, and mean NDVI as the final predictors for acres burned. The ARMAX model improved AICc and BIC compared with the baseline model and had acceptable residual diagnostics. Overall, the results suggest that wildfire severity in Ventura County is connected to drought, vegetation conditions, and Santa Ana-like wind patterns.
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    fig-pos: "H"
+    fig-width: 6
+    fig-height: 4
+    fontsize: 11pt
+    geometry: margin=1in
+    colorlinks: true
+    linkcolor: blue
+    include-in-header:
+      text: |
+        \usepackage{fancyhdr}
+        \usepackage{etoolbox}
+        \pagestyle{fancy}
+        \fancyhead[L]{PSTAT 174 -- Final Project}
+        \fancyhead[R]{Gonzalez Martinez}
+        \fancyfoot[C]{\thepage}
+        \pretocmd{\tableofcontents}{\newpage}{}{}
+execute:
+  warning: false
+  message: false
+---
+
+\newpage
+
+# Introduction
+
+Wildfires are an important issue in California because they can affect land, communities, air quality, and public safety. In this project, I study monthly wildfire activity in Ventura County, California from February 2000 to December 2020. I chose Ventura County because it is my home county, so the topic is personally interesting to me. The dataset also works well for time series analysis because the fire records can be aggregated by month into wildfire starts and total acres burned.
+
+The purpose of this project is to model wildfire activity using methods from time series analysis. I first use a SARIMA model to study monthly wildfire starts. This gives a baseline model that only uses the past behavior of the fire count series. Then, I use an ARMAX model to study monthly acres burned, which represents wildfire severity. For the ARMAX model, I include external predictors related to drought, weather, Santa Ana-like wind events, and vegetation conditions.
+
+Past wildfire studies often focus on how climate and environmental conditions are connected to fire activity. In this project, I use that same general idea by testing whether drought, wind, humidity, temperature, vapor pressure deficit, and NDVI help explain monthly acres burned. The main discovery is that the final ARMAX model selected lagged severe drought, Santa Ana-like wind conditions, and mean NDVI as useful predictors. This suggests that wildfire severity in Ventura County is not only related to past fire behavior, but also to drought, vegetation, and Southern California wind patterns.
+
+# Data
+
+The main wildfire dataset used in this project comes from the USDA Forest Service Fire Program Analysis Fire-Occurrence Database. The original records include information such as discovery date, final fire size, and fire location. I filtered the data to Ventura County, California and aggregated the individual wildfire records into a monthly time series.
+
+The original wildfire file covers January 1992 through December 2020. However, for the final analysis, I restrict the sample to February 2000 through December 2020. I use this common time period because the NDVI vegetation data begin around 2000, and using the same general period makes the SARIMA and ARMAX analyses more comparable. The final monthly wildfire sample contains 251 monthly observations.
+
+The two main wildfire variables are monthly fire count and monthly total acres burned. The fire count variable measures the number of wildfire starts in Ventura County each month. In the 2000-2020 sample, monthly fire count ranges from 0 to 19, with a median of 1 and a mean of about 2.23. This shows that many months had low fire activity, while a few months had much higher wildfire counts.
+
+The total acres burned variable measures the total fire size for each month. This variable is much more extreme than fire count because one large wildfire can dominate the total acres burned for an entire month. In the 2000-2020 sample, monthly total acres burned ranges from 0 to about 281,899.5 acres, with a median of about 0.10 acres. This shows that most months had very low acres burned, but a few extreme wildfire months had very large values.
+
+For the SARIMA portion of the project, I use monthly fire count from February 2000 through December 2020. Since the fire count series contains many zero values and some spikes, I apply the transformation $\log(1+\text{fire count})$. The +1 keeps zero-fire months in the analysis, while the log transformation reduces the effect of unusually large monthly fire counts.
+
+For the ARMAX portion of the project, I use monthly acres burned as the response variable and add external drought, weather, wind, and vegetation predictors. Acres burned is transformed using $\log(1+\text{total acres burned})$ because the original acres-burned series is highly right-skewed and contains several extreme wildfire months.
+
+The drought variables come from the SPI drought data file. I use the drought categories D0 through D4, where larger categories represent more severe dry conditions. I also create lagged drought variables at 1-month, 3-month, and 6-month lags because drought may affect wildfire severity after some delay. In addition, I create a weighted drought index using $D0 + 2D1 + 3D2 + 4D3 + 5D4$ so that more severe drought categories receive more weight.
+
+Weather variables are taken from NASA POWER daily data and then aggregated to the monthly level. These variables include maximum temperature, wind speed, relative humidity, and vapor pressure deficit. I also create a simplified Santa Ana-like wind variable using wind direction, maximum wind speed, and relative humidity. This variable counts dry offshore-wind days in each month and is included because Santa Ana winds are an important fire-weather pattern in Southern California.
+
+Vegetation conditions are measured using NDVI from MODIS. NDVI is used as a measure of vegetation greenness and possible fuel condition. After merging the wildfire, SPI, weather, Santa Ana wind, and NDVI variables, the final ARMAX dataset contains 248 complete monthly observations. This smaller number occurs because lagged drought variables require earlier months to be removed from the final modeling dataset.
+
+
+# Methodology
+
+This project uses two main time series methods. First, I use a SARIMA model to analyze monthly wildfire starts in Ventura County. Second, I use an ARMAX model to analyze monthly acres burned while including external predictors related to drought, weather, Santa Ana-like wind events, and vegetation conditions. Both parts of the final analysis use the common sample from February 2000 through December 2020.
+
+## SARIMA Model
+
+For the first part of the analysis, I model monthly wildfire starts using a SARIMA model. The response variable is monthly fire count. Since the fire count series contains zero months and several spikes, I use the transformation
+
+$$
+y_t = \log(1+x_t)
+$$
+
+where $x_t$ is the monthly number of wildfire starts. The value 1 is added so that months with zero wildfire starts can still be included, since $\log(0)$ is undefined.
+
+Because the data are monthly, I define the time series with frequency 12. This allows the model to account for possible yearly seasonal patterns. I use the Box-Jenkins approach by examining the time series plot, ACF plot, and PACF plot of the transformed series. I also use `ndiffs()` and `nsdiffs()` to help determine whether regular or seasonal differencing is needed.
+
+The general SARIMA model has the form
+
+$$
+SARIMA(p,d,q)(P,D,Q)_{12}
+$$
+
+where $p,d,q$ are the nonseasonal ARIMA orders, $P,D,Q$ are the seasonal ARIMA orders, and 12 is the seasonal period for monthly data. I compare candidate models using AICc and BIC. I also use `auto.arima()` with `seasonal = TRUE` to help select the final model automatically.
+
+After selecting the SARIMA model, I check the residuals using residual plots, the residual ACF, and the Ljung-Box test. The goal is for the residuals to look approximately like white noise. A Ljung-Box p-value above 0.05 suggests that there is not strong evidence of remaining autocorrelation.
+
+## ARMAX Model
+
+For the second part of the analysis, I model monthly acres burned using an ARMAX model. Acres burned is used as the wildfire severity response. Since acres burned is highly right-skewed and contains several extreme wildfire months, I use the transformation
+
+$$
+z_t = \log(1+\text{total acres burned}_t)
+$$
+
+This transformation reduces the effect of extremely large wildfire months while still keeping months with zero acres burned in the analysis.
+
+The ARMAX model combines regression predictors with an ARIMA error process. The regression part can be written as
+
+$$
+z_t = \beta_0 + \beta_1X_{1,t} + \beta_2X_{2,t} + \cdots + \beta_kX_{k,t} + e_t
+$$
+
+where $z_t$ is the transformed acres-burned response, $X_{1,t}, X_{2,t}, \ldots, X_{k,t}$ are external predictors, and $e_t$ follows an ARIMA process. This allows the model to include drought, weather, wind, and vegetation variables while also accounting for time dependence in the residuals.
+
+The external predictors include SPI drought categories, NASA POWER weather variables, a simplified Santa Ana-like wind indicator, and MODIS NDVI. The SPI drought categories D0 through D4 are lagged by 1, 3, and 6 months because drought may affect wildfire severity after some delay. I also create a weighted drought index:
+
+$$
+\text{Weighted Drought Index} = D0 + 2D1 + 3D2 + 4D3 + 5D4
+$$
+
+This gives more weight to more severe drought categories.
+
+Vapor pressure deficit is included as a measure of atmospheric dryness. I calculate saturation vapor pressure as
+
+$$
+e_s = 0.6108\exp\left(\frac{17.27T}{T+237.3}\right)
+$$
+
+and vapor pressure deficit as
+
+$$
+VPD = e_s\left(1-\frac{RH}{100}\right)
+$$
+
+where $T$ is mean temperature and $RH$ is relative humidity.
+
+I also create a simplified Santa Ana-like wind event variable using daily wind direction, maximum wind speed, and relative humidity. A day is counted as Santa Ana-like if it has northeast/east-sector wind direction, moderate-to-strong wind, and low relative humidity. These daily indicators are then aggregated to the monthly level as `santa_ana_days` and `santa_ana_flag`.
+
+To choose the final ARMAX predictors, I first fit a large regression model using the possible drought, weather, Santa Ana wind, VPD, and NDVI variables. I then use BIC stepwise selection with
+
+$$
+k = \log(n)
+$$
+
+so that the selection penalizes unnecessary predictors more strongly than AIC. After BIC selects the predictors, I check VIF values to make sure multicollinearity is not a major issue.
+
+Finally, I fit the ARMAX model using the BIC-selected predictors and compare it to a baseline SARIMA model for acres burned on the same 2000-2020 sample. The comparison is based on AICc, BIC, and residual diagnostics. I also use the Ljung-Box test to check whether the ARMAX residuals still show significant autocorrelation.
+
+# Results
+
+## SARIMA Results for Monthly Wildfire Starts
+
+The first part of the analysis modeled monthly wildfire starts in Ventura County using the transformed fire count series from February 2000 through December 2020. After applying the transformation
+
+$$
+y_t = \log(1+\text{fire count}_t),
+$$
+
+I examined the time series plot, ACF plot, and PACF plot. The ACF showed slow decay, suggesting that regular differencing was needed. This matched the output from `ndiffs()`, which suggested one regular difference. The output from `nsdiffs()` suggested that seasonal differencing was not needed.
+
+The model selected by `auto.arima()` was
+
+$$
+ARIMA(0,1,3)(0,0,1)_{12}.
+$$
+
+This model uses one regular difference, three nonseasonal moving-average terms, and one seasonal moving-average term with period 12. The selected SARIMA model had AICc about 467.92 and BIC about 485.28.
+
+The residual diagnostics were acceptable. The Ljung-Box test gave a p-value of about 0.1224, which is above 0.05. Therefore, I do not reject the null hypothesis that the residuals are white noise. This suggests that the SARIMA model captured most of the autocorrelation in the transformed monthly wildfire count series.
+
+The 12-month forecast from the SARIMA model predicted monthly wildfire starts to remain at a moderate level. After transforming the forecasts back to the original fire-count scale, the point forecasts were mostly between about 7.5 and 10.4 wildfire starts per month. The prediction intervals were wide, showing that there is still a large amount of uncertainty when forecasting wildfire starts. Overall, the SARIMA model gives a useful baseline model for monthly wildfire starts, but wildfire activity is still difficult to predict exactly because it can depend on sudden weather, ignition, and environmental conditions.
+
+## ARMAX Results for Monthly Acres Burned
+
+The second part of the analysis modeled monthly acres burned using an ARMAX model with external predictors. Because acres burned is highly right-skewed and has several extreme wildfire months, I used
+
+$$
+z_t = \log(1+\text{total acres burned}_t)
+$$
+
+as the response variable.
+
+The ARMAX analysis used the February 2000 through December 2020 sample. After merging wildfire data with drought, weather, Santa Ana wind, and NDVI variables, the final ARMAX dataset contained 248 complete monthly observations.
+
+I tested a large set of possible predictors, including lagged SPI drought categories, temperature, wind speed, relative humidity, vapor pressure deficit, Santa Ana-like wind variables, and mean NDVI. BIC selection chose `D2_lag3`, `santa_ana_flag`, and `mean_ndvi` as the final predictors. The selected regression part of the model was approximately
+
+$$
+\widehat{\log(1+\text{acres burned})}
+=
+7.7355
+-0.0141(\text{D2\_lag3})
++2.2227(\text{santa\_ana\_flag})
+-12.5701(\text{mean\_ndvi})
+$$
+
+All three selected predictors had small p-values. The p-value for `D2_lag3` was about 0.0005, the p-value for `santa_ana_flag` was about 0.0023, and the p-value for `mean_ndvi` was about $3.85 \times 10^{-8}$. The model $R^2$ was about 0.175. This $R^2$ is not very high, but that is expected because acres burned is irregular and dominated by rare extreme wildfire months. The regression step was mainly used for variable selection before fitting the ARMAX model.
+
+The VIF values for the selected predictors were all close to 1. This suggests that multicollinearity was not a major issue in the selected model.
+
+After fitting the ARMAX model with the BIC-selected predictors, the model improved over the baseline acres-burned model. The baseline SARIMA model for transformed acres burned had AICc about 1094.54 and BIC about 1101.48. The ARMAX model with the selected predictors had AICc about 1065.62 and BIC about 1089.66. Since lower AICc and BIC values are better, this suggests that adding drought, Santa Ana-like wind conditions, and NDVI improved the model.
+
+The final ARMAX model used regression with ARIMA(1,0,1) errors. The estimated ARMAX coefficients were similar to the regression screening model: lagged severe drought had a negative coefficient, the Santa Ana-like wind indicator had a positive coefficient, and mean NDVI had a negative coefficient. The Ljung-Box test for the ARMAX residuals had a p-value of about 0.8344, which is above 0.05. This means I do not reject the null hypothesis that the residuals are white noise. In other words, the ARMAX model captured most of the remaining autocorrelation in the transformed acres-burned series.
+
+Overall, the ARMAX results suggest that monthly acres burned in Ventura County is related to lagged severe drought conditions, Santa Ana-like wind events, and vegetation greenness. The model does not perfectly explain wildfire severity, but it gives a stronger result than the baseline SARIMA model and connects well with known wildfire risk factors in Southern California.
+
+
+
+# Conclusion and Future Study
+
+In this project, I studied monthly wildfire activity in Ventura County, California from February 2000 to December 2020 using time series methods. The first part of the project used a SARIMA model to analyze monthly wildfire starts. The selected SARIMA model was $ARIMA(0,1,3)(0,0,1)_{12}$, which used one regular difference, three nonseasonal moving-average terms, and one seasonal moving-average term. The Ljung-Box test for this model had a p-value above 0.05, so there was not strong evidence of remaining autocorrelation in the residuals. This suggests that the SARIMA model was a reasonable baseline model for monthly wildfire starts.
+
+The second part of the project used an ARMAX model to study monthly acres burned. Since acres burned is more connected to wildfire severity, I added external predictors related to drought, weather, Santa Ana-like wind events, and vegetation conditions. After testing a large set of possible predictors, BIC selected lagged severe drought, a Santa Ana-like wind indicator, and mean NDVI as the final predictors. This result suggests that wildfire severity in Ventura County is connected to drought conditions, Southern California wind patterns, and vegetation greenness.
+
+The final ARMAX model improved over the baseline acres-burned model based on both AICc and BIC. The baseline SARIMA model for acres burned had AICc about 1094.54 and BIC about 1101.48, while the ARMAX model had AICc about 1065.62 and BIC about 1089.66. The residual diagnostics were also acceptable because the Ljung-Box test did not show strong remaining autocorrelation. Overall, the ARMAX model gave a stronger explanation of monthly acres burned than a model based only on past values of the series.
+
+There are several ways this project could be extended in the future. First, the Santa Ana wind variable used here is a simplified proxy based on wind direction, wind speed, and relative humidity. Future work could use an official Santa Ana wind event dataset or a more detailed regional wind classification. Second, the NDVI variable was based on vegetation greenness, but future work could include more direct fuel moisture measures if reliable station-level data were available. Third, a spatial analysis could be added by studying where fires occurred inside Ventura County instead of only using county-level monthly totals. Finally, future models could test lagged wildfire counts as predictors of acres burned, since high fire activity in one month may indicate persistent fire-prone conditions in the following month.
+
+Overall, this project shows that SARIMA and ARMAX models can be useful for studying wildfire time series. The SARIMA model gave a baseline model for wildfire starts, while the ARMAX model showed that drought, Santa Ana-like wind conditions, and vegetation conditions helped explain monthly acres burned in Ventura County.
+
+
+# References
+
+NASA Earthdata. (2024). MODIS/Terra Vegetation Indices 16-Day L3 Global 250m SIN Grid, Version 6.1 (MOD13Q1). National Aeronautics and Space Administration.
+
+NASA POWER Project. (2024). POWER Daily API: Prediction Of Worldwide Energy Resources. National Aeronautics and Space Administration.
+
+NOAA National Integrated Drought Information System. (2024). U.S. Gridded Standardized Precipitation Index (SPI) from nClimGrid. Drought.gov.
+
+Short, K. C. (2022). Spatial wildfire occurrence data for the United States, 1992-2020 [FPA_FOD_20221014], 6th Edition. Forest Service Research Data Archive.
+
+\newpage
+
+# Appendix
+
+The appendix contains the main R code used for the final analysis. To make the SARIMA and ARMAX analyses more comparable, I restricted the working sample to February 2000 through December 2020. This matches the period used for the NDVI-based ARMAX model.
+
+## Appendix A: Libraries and Wildfire Data
+
+```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(MASS)
+library(car)
+library(jsonlite)
+library(MODISTools)
+
+# Define common study period
+sample_start <- as.Date("2000-02-01")
+sample_end <- as.Date("2020-12-01")
+
+# Load monthly wildfire data
+monthly_full <- read_csv("ventura_wildfires_monthly_1992_2020.csv",
+                         show_col_types = FALSE) |>
+  mutate(month = as.Date(month))
+
+# Restrict to 2000-2020 sample
+monthly_model <- monthly_full |>
+  filter(
+    month >= sample_start,
+    month <= sample_end
+  )
+
+nrow(monthly_model)
+summary(monthly_model)
+```
+\newpage
+
+## Appendix B: SARIMA Model for Monthly Wildfire Starts
+
+
+```{r}
+# Create monthly fire-count time series using the common sample
+fire_ts <- ts(
+  monthly_model$fire_count,
+  start = c(year(min(monthly_model$month)),
+            month(min(monthly_model$month))),
+  frequency = 12
+)
+
+# Log transform fire count
+fire_log <- log1p(fire_ts)
+
+plot(fire_log,
+     main = "Log-Transformed Monthly Wildfire Starts",
+     ylab = "log(1 + wildfire starts)",
+     xlab = "Year")
+
+acf(fire_log,
+    lag.max = 60,
+    main = "ACF of Log-Transformed Wildfire Starts")
+
+pacf(fire_log,
+     lag.max = 60,
+     main = "PACF of Log-Transformed Wildfire Starts")
+
+# Check differencing
+ndiffs(fire_log)
+nsdiffs(fire_log)
+
+# Fit SARIMA model
+fit_auto <- auto.arima(
+  fire_log,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+
+summary(fit_auto)
+checkresiduals(fit_auto)
+
+# Forecast 12 months ahead
+wildfire_forecast <- forecast(fit_auto, h = 12)
+
+forecast_counts <- data.frame(
+  month_ahead = 1:12,
+  point_forecast = expm1(wildfire_forecast$mean),
+  lower_80 = expm1(wildfire_forecast$lower[, 1]),
+  upper_80 = expm1(wildfire_forecast$upper[, 1]),
+  lower_95 = expm1(wildfire_forecast$lower[, 2]),
+  upper_95 = expm1(wildfire_forecast$upper[, 2])
+)
+
+forecast_counts
+```
+\newpage
+## Appendix C: External Predictors for ARMAX
+
+```{r}
+# Appendix C: External Predictors for ARMAX
+# This chunk creates SPI drought variables, NASA POWER weather variables,
+# a Santa Ana-like wind proxy, VPD, and MODIS NDVI.
+
+# 1. Define common sample and make sure wildfire data exists
+
+sample_start <- as.Date("2000-02-01")
+sample_end <- as.Date("2020-12-01")
+
+if (!exists("monthly_full")) {
+  monthly_full <- readr::read_csv("ventura_wildfires_monthly_1992_2020.csv",
+                                  show_col_types = FALSE) |>
+    dplyr::mutate(month = as.Date(month))
+}
+
+monthly_model <- monthly_full |>
+  dplyr::filter(
+    month >= sample_start,
+    month <= sample_end
+  )
+
+# 2. Load and clean SPI drought data
+
+
+spi_raw <- readr::read_csv("SPI-06111.csv",
+                           show_col_types = FALSE)
+
+spi_clean <- spi_raw |>
+  dplyr::mutate(
+    month = as.Date(gsub("d_", "", DATE), format = "%Y%m%d")
+  ) |>
+  dplyr::filter(
+    month >= sample_start,
+    month <= sample_end
+  ) |>
+  dplyr::select(month, D0, D1, D2, D3, D4)
+
+# 3. Merge wildfire and SPI data, then create drought lags
+
+wildfire_spi <- monthly_model |>
+  dplyr::left_join(spi_clean, by = "month") |>
+  dplyr::arrange(month) |>
+  dplyr::mutate(
+    log_acres = log1p(total_acres_burned),
+    month_num = lubridate::month(month),
+
+    weighted_dry_index = D0 + 2*D1 + 3*D2 + 4*D3 + 5*D4,
+    weighted_dry_lag1 = dplyr::lag(weighted_dry_index, 1),
+    weighted_dry_lag3 = dplyr::lag(weighted_dry_index, 3),
+    weighted_dry_lag6 = dplyr::lag(weighted_dry_index, 6),
+
+    D0_lag1 = dplyr::lag(D0, 1),
+    D1_lag1 = dplyr::lag(D1, 1),
+    D2_lag1 = dplyr::lag(D2, 1),
+    D3_lag1 = dplyr::lag(D3, 1),
+    D4_lag1 = dplyr::lag(D4, 1),
+
+    D0_lag3 = dplyr::lag(D0, 3),
+    D1_lag3 = dplyr::lag(D1, 3),
+    D2_lag3 = dplyr::lag(D2, 3),
+    D3_lag3 = dplyr::lag(D3, 3),
+    D4_lag3 = dplyr::lag(D4, 3),
+
+    D0_lag6 = dplyr::lag(D0, 6),
+    D1_lag6 = dplyr::lag(D1, 6),
+    D2_lag6 = dplyr::lag(D2, 6),
+    D3_lag6 = dplyr::lag(D3, 6),
+    D4_lag6 = dplyr::lag(D4, 6)
+  )
+
+# 4. Download or load NASA POWER weather data
+
+lat <- 34.37
+lon <- -119.14
+
+weather_file <- "ventura_weather_monthly_2000_2020.csv"
+
+if (file.exists(weather_file)) {
+
+  weather_monthly_vpd <- readr::read_csv(weather_file,
+                                         show_col_types = FALSE) |>
+    dplyr::mutate(month = as.Date(month))
+
+} else {
+
+  weather_start <- format(sample_start, "%Y%m%d")
+  weather_end <- format(lubridate::ceiling_date(sample_end, "month") - lubridate::days(1),
+                        "%Y%m%d")
+
+  power_url_vpd <- paste0(
+    "https://power.larc.nasa.gov/api/temporal/daily/point?",
+    "parameters=T2M,T2M_MAX,RH2M,WS10M,WS10M_MAX,WD10M",
+    "&community=AG",
+    "&longitude=", lon,
+    "&latitude=", lat,
+    "&start=", weather_start,
+    "&end=", weather_end,
+    "&format=JSON"
+  )
+
+  power_raw_vpd <- jsonlite::fromJSON(power_url_vpd)
+
+  params <- power_raw_vpd$properties$parameter
+
+  weather_daily_vpd <- data.frame(
+    date = as.Date(names(params$T2M), format = "%Y%m%d"),
+    tmean = as.numeric(params$T2M),
+    tmax = as.numeric(params$T2M_MAX),
+    rh = as.numeric(params$RH2M),
+    wind_mean = as.numeric(params$WS10M),
+    wind_max = as.numeric(params$WS10M_MAX),
+    wind_dir = as.numeric(params$WD10M)
+  ) |>
+    dplyr::mutate(
+      es = 0.6108 * exp((17.27 * tmean) / (tmean + 237.3)),
+      vpd = es * (1 - rh / 100),
+
+      santa_ana_day = dplyr::if_else(
+        !is.na(wind_dir) & !is.na(wind_max) & !is.na(rh) &
+          wind_dir >= 20 & wind_dir <= 120 &
+          wind_max >= 6 & rh <= 30,
+        1, 0
+      )
+    )
+
+  weather_monthly_vpd <- weather_daily_vpd |>
+    dplyr::mutate(month = lubridate::floor_date(date, "month")) |>
+    dplyr::group_by(month) |>
+    dplyr::summarize(
+      mean_tmax = mean(tmax, na.rm = TRUE),
+      mean_rh = mean(rh, na.rm = TRUE),
+      mean_vpd = mean(vpd, na.rm = TRUE),
+      max_vpd = max(vpd, na.rm = TRUE),
+      mean_wind = mean(wind_mean, na.rm = TRUE),
+      max_wind = max(wind_max, na.rm = TRUE),
+      santa_ana_days = sum(santa_ana_day, na.rm = TRUE),
+      santa_ana_flag = as.integer(sum(santa_ana_day, na.rm = TRUE) > 0),
+      .groups = "drop"
+    )
+
+  readr::write_csv(weather_monthly_vpd, weather_file)
+}
+
+# 5. Download or load MODIS NDVI data
+
+ndvi_file <- "ventura_ndvi_monthly_2000_2020.csv"
+
+if (file.exists(ndvi_file)) {
+
+  ndvi_monthly <- readr::read_csv(ndvi_file,
+                                  show_col_types = FALSE) |>
+    dplyr::mutate(month = as.Date(month))
+
+} else {
+
+  ndvi_raw <- MODISTools::mt_subset(
+    product = "MOD13Q1",
+    lat = lat,
+    lon = lon,
+    band = "250m_16_days_NDVI",
+    start = "2000-02-18",
+    end = "2020-12-31",
+    km_lr = 20,
+    km_ab = 20,
+    site_name = "Ventura_County"
+  )
+
+  ndvi_monthly <- ndvi_raw |>
+    dplyr::mutate(
+      date = as.Date(calendar_date),
+      ndvi = value * 0.0001,
+      month = lubridate::floor_date(date, "month")
+    ) |>
+    dplyr::filter(
+      !is.na(ndvi),
+      ndvi >= -1,
+      ndvi <= 1
+    ) |>
+    dplyr::group_by(month) |>
+    dplyr::summarize(
+      mean_ndvi = mean(ndvi, na.rm = TRUE),
+      .groups = "drop"
+    )
+
+  readr::write_csv(ndvi_monthly, ndvi_file)
+}
+
+# 6. Merge wildfire, drought, weather, and NDVI data
+model_data_vpd_ndvi <- wildfire_spi |>
+  dplyr::left_join(weather_monthly_vpd, by = "month") |>
+  dplyr::left_join(ndvi_monthly, by = "month") |>
+  dplyr::filter(
+    month >= sample_start,
+    month <= sample_end,
+    !is.na(log_acres),
+    !is.na(D2_lag3),
+    !is.na(mean_ndvi),
+    !is.na(santa_ana_flag)
+  )
+
+nrow(model_data_vpd_ndvi)
+summary(model_data_vpd_ndvi)
+```
+
+\newpage
+## Appendix D: BIC Selection and Final ARMAX Model
+
+```{r}
+# Candidate predictors for ARMAX selection
+candidate_predictors <- c(
+  "D0_lag1", "D1_lag1", "D2_lag1", "D3_lag1", "D4_lag1",
+  "D0_lag3", "D1_lag3", "D2_lag3", "D3_lag3", "D4_lag3",
+  "D0_lag6", "D1_lag6", "D2_lag6", "D3_lag6", "D4_lag6",
+
+  "mean_tmax", "max_tmax",
+  "mean_wind", "max_wind",
+  "mean_rh",
+  "mean_vpd", "max_vpd",
+
+  "santa_ana_days", "santa_ana_flag",
+
+  "mean_ndvi"
+)
+
+candidate_predictors <- candidate_predictors[
+  candidate_predictors %in% names(model_data_vpd_ndvi)
+]
+
+model_data_big <- model_data_vpd_ndvi |>
+  dplyr::select(month, log_acres, all_of(candidate_predictors)) |>
+  na.omit()
+
+big_formula <- reformulate(
+  termlabels = candidate_predictors,
+  response = "log_acres"
+)
+
+big_lm <- lm(
+  big_formula,
+  data = model_data_big
+)
+
+# BIC stepwise selection
+big_bic_lm <- stepAIC(
+  big_lm,
+  direction = "both",
+  k = log(nrow(model_data_big)),
+  trace = FALSE
+)
+
+summary(big_bic_lm)
+
+selected_big_terms <- attr(terms(big_bic_lm), "term.labels")
+selected_big_terms
+
+# VIF 
+num_predictors <- length(coef(big_bic_lm)) - 1
+
+if (num_predictors >= 2) {
+  vif(big_bic_lm)
+} else {
+  cat("VIF not calculated because the selected model has only one predictor.\n")
+}
+
+#Create acres-burned timeseries
+log_acres_big_ts <- ts(
+  model_data_big$log_acres,
+  start = c(year(min(model_data_big$month)),
+            month(min(model_data_big$month))),
+  frequency = 12
+)
+
+#SARIMA for acres burned
+baseline_big <- auto.arima(
+  log_acres_big_ts,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+
+#ARMAX with BIC-selected predictors
+xreg_big_selected <- model_data_big |>
+  dplyr::select(all_of(selected_big_terms)) |>
+  as.matrix()
+
+armax_big_selected <- auto.arima(
+  log_acres_big_ts,
+  xreg = xreg_big_selected,
+  seasonal = TRUE,
+  stepwise = FALSE,
+  approximation = FALSE
+)
+
+summary(baseline_big)
+summary(armax_big_selected)
+checkresiduals(armax_big_selected)
+
+big_model_comparison <- data.frame(
+  model = c(
+    "Baseline SARIMA, same sample",
+    "ARMAX with BIC-selected predictors"
+  ),
+  AICc = c(
+    baseline_big$aicc,
+    armax_big_selected$aicc
+  ),
+  BIC = c(
+    BIC(baseline_big),
+    BIC(armax_big_selected)
+  )
+)
+
+big_model_comparison
+coef(big_bic_lm)
+selected_big_terms
+```
+
+
+
+
+
+
