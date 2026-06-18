@@ -1,0 +1,82 @@
+---
+title: "index.qmd"
+format: html
+editor: visual
+---
+
+---
+
+title: "Time Series Analysis of Ventura County Wildfires"
+subtitle: "Using SARIMA and ARMAX Models"
+author: "Edgar Gonzalez Martinez"
+format: html
+------------
+
+## Project Overview
+
+This project analyzes monthly wildfire activity in Ventura County, California from 2000 to 2020 using time series methods.
+
+The first part of the project models monthly wildfire starts using a SARIMA model. The second part models monthly acres burned using an ARMAX model with external predictors related to drought, Santa Ana-like wind conditions, weather, and NDVI vegetation greenness.
+
+## Research Questions
+
+1. Can monthly wildfire starts in Ventura County be modeled using SARIMA methods?
+2. Can external predictors improve the modeling of monthly acres burned?
+3. Which environmental variables are most useful for explaining wildfire severity?
+
+## Data
+
+The project uses monthly wildfire data from Ventura County along with external drought, weather, wind, and vegetation variables.
+
+The main variables are:
+
+* Monthly wildfire count
+* Monthly total acres burned
+* SPI drought categories
+* NASA POWER weather variables
+* Santa Ana-like wind indicators
+* MODIS NDVI vegetation greenness
+
+## Methods
+
+The analysis uses two main models:
+
+* SARIMA model for monthly wildfire starts
+* ARMAX model for monthly acres burned
+
+The SARIMA model provides a baseline time series model using only past wildfire behavior. The ARMAX model adds external predictors to explain wildfire severity while still accounting for time dependence.
+
+## Main Results
+
+The selected SARIMA model for wildfire starts was:
+
+$$
+ARIMA(0,1,3)(0,0,1)_{12}
+$$
+
+For monthly acres burned, the ARMAX model selected three main predictors:
+
+* Lagged severe drought
+* Santa Ana-like wind indicator
+* Mean NDVI
+
+The ARMAX model improved AICc and BIC compared with the baseline SARIMA model for acres burned.
+
+## Tools Used
+
+* R
+* Quarto
+* forecast
+* dplyr
+* ggplot2
+* MASS
+* car
+* NASA POWER data
+* MODIS NDVI data
+* SPI drought data
+
+## Links
+
+* [Full Report](report.html)
+* [GitHub Repository](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis)
+

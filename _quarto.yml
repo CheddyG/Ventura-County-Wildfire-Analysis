@@ -1,0 +1,26 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Time Series Analysis of Ventura County Wildfires"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: report.qmd
+        text: Full Report
+      - href: README.md
+        text: README
+
+format:
+  html:
+    theme: tux
+    toc: true
+    code-fold: true
+    code-tools: true
+
+execute:
+  warning: false
+  message: false
+  freeze: auto
