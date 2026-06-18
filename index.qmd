@@ -1,82 +1,88 @@
 ---
-title: "index.qmd"
+title: "Time Series Analysis of Ventura County Wildfires"
+subtitle: "SARIMA and ARMAX Models for Wildfire Activity"
+author: "Edgar Gonzalez Martinez"
 format: html
 editor: visual
 ---
 
----
 
-title: "Time Series Analysis of Ventura County Wildfires"
-subtitle: "Using SARIMA and ARMAX Models"
-author: "Edgar Gonzalez Martinez"
-format: html
-------------
+```{r}
+#| label: setup
+#| include: false
 
-## Project Overview
+library(readr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
 
-This project analyzes monthly wildfire activity in Ventura County, California from 2000 to 2020 using time series methods.
+sample_start <- as.Date("2000-02-01")
+sample_end <- as.Date("2020-12-01")
 
-The first part of the project models monthly wildfire starts using a SARIMA model. The second part models monthly acres burned using an ARMAX model with external predictors related to drought, Santa Ana-like wind conditions, weather, and NDVI vegetation greenness.
+monthly_full <- read_csv("ventura_wildfires_monthly_1992_2020.csv",
+                         show_col_types = FALSE) |>
+  mutate(month = as.Date(month))
 
-## Research Questions
+monthly_model <- monthly_full |>
+  filter(
+    month >= sample_start,
+    month <= sample_end
+  ) |>
+  mutate(
+    log_fire_count = log1p(fire_count),
+    log_acres = log1p(total_acres_burned)
+  )
+```
 
-1. Can monthly wildfire starts in Ventura County be modeled using SARIMA methods?
-2. Can external predictors improve the modeling of monthly acres burned?
-3. Which environmental variables are most useful for explaining wildfire severity?
+## Key Visuals
 
-## Data
+```{r}
+#| label: fig-fire-count
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Monthly wildfire starts in Ventura County, 2000–2020."
 
-The project uses monthly wildfire data from Ventura County along with external drought, weather, wind, and vegetation variables.
+ggplot(monthly_model, aes(x = month, y = fire_count)) +
+  geom_line() +
+  labs(
+    x = "Year",
+    y = "Monthly wildfire starts",
+    title = "Monthly Wildfire Starts in Ventura County"
+  ) +
+  theme_minimal()
+```
 
-The main variables are:
+```{r}
+#| label: fig-log-fire-count
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Log-transformed monthly wildfire starts used for SARIMA modeling."
 
-* Monthly wildfire count
-* Monthly total acres burned
-* SPI drought categories
-* NASA POWER weather variables
-* Santa Ana-like wind indicators
-* MODIS NDVI vegetation greenness
+ggplot(monthly_model, aes(x = month, y = log_fire_count)) +
+  geom_line() +
+  labs(
+    x = "Year",
+    y = "log(1 + wildfire starts)",
+    title = "Log-Transformed Monthly Wildfire Starts"
+  ) +
+  theme_minimal()
+```
 
-## Methods
+```{r}
+#| label: fig-log-acres
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Log-transformed monthly acres burned used for wildfire severity modeling."
 
-The analysis uses two main models:
-
-* SARIMA model for monthly wildfire starts
-* ARMAX model for monthly acres burned
-
-The SARIMA model provides a baseline time series model using only past wildfire behavior. The ARMAX model adds external predictors to explain wildfire severity while still accounting for time dependence.
-
-## Main Results
-
-The selected SARIMA model for wildfire starts was:
-
-$$
-ARIMA(0,1,3)(0,0,1)_{12}
-$$
-
-For monthly acres burned, the ARMAX model selected three main predictors:
-
-* Lagged severe drought
-* Santa Ana-like wind indicator
-* Mean NDVI
-
-The ARMAX model improved AICc and BIC compared with the baseline SARIMA model for acres burned.
-
-## Tools Used
-
-* R
-* Quarto
-* forecast
-* dplyr
-* ggplot2
-* MASS
-* car
-* NASA POWER data
-* MODIS NDVI data
-* SPI drought data
-
-## Links
-
-* [Full Report](report.html)
-* [GitHub Repository](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis)
-
+ggplot(monthly_model, aes(x = month, y = log_acres)) +
+  geom_line() +
+  labs(
+    x = "Year",
+    y = "log(1 + acres burned)",
+    title = "Log-Transformed Monthly Acres Burned"
+  ) +
+  theme_minimal()
+```

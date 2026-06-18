@@ -1,0 +1,17 @@
+{
+  "hash": "e9217e8fcf0a835d188140ee26f1e5de",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Time Series Analysis of Ventura County Wildfires\"\nsubtitle: \"SARIMA and ARMAX Models for Wildfire Activity\"\nauthor: \"Edgar Gonzalez Martinez\"\nformat: html\neditor: visual\n---\n\n\n\n\n## Key Visuals\n\n\n::: {.cell}\n::: {.cell-output-display}\n![Monthly wildfire starts in Ventura County, 2000–2020.](index_files/figure-html/fig-fire-count-1.png){#fig-fire-count width=672}\n:::\n:::\n\n\n\n::: {.cell}\n::: {.cell-output-display}\n![Log-transformed monthly wildfire starts used for SARIMA modeling.](index_files/figure-html/fig-log-fire-count-1.png){#fig-log-fire-count width=672}\n:::\n:::\n\n\n\n::: {.cell}\n::: {.cell-output-display}\n![Log-transformed monthly acres burned used for wildfire severity modeling.](index_files/figure-html/fig-log-acres-1.png){#fig-log-acres width=672}\n:::\n:::\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

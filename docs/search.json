@@ -2,57 +2,15 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "index.qmd",
+    "title": "Time Series Analysis of Ventura County Wildfires",
     "section": "",
-    "text": "title: “Time Series Analysis of Ventura County Wildfires” subtitle: “Using SARIMA and ARMAX Models” author: “Edgar Gonzalez Martinez” format: html ————"
+    "text": "Figure 1: Monthly wildfire starts in Ventura County, 2000–2020.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 2: Log-transformed monthly wildfire starts used for SARIMA modeling.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 3: Log-transformed monthly acres burned used for wildfire severity modeling."
   },
   {
-    "objectID": "index.html#project-overview",
-    "href": "index.html#project-overview",
-    "title": "index.qmd",
-    "section": "Project Overview",
-    "text": "Project Overview\nThis project analyzes monthly wildfire activity in Ventura County, California from 2000 to 2020 using time series methods.\nThe first part of the project models monthly wildfire starts using a SARIMA model. The second part models monthly acres burned using an ARMAX model with external predictors related to drought, Santa Ana-like wind conditions, weather, and NDVI vegetation greenness."
-  },
-  {
-    "objectID": "index.html#research-questions",
-    "href": "index.html#research-questions",
-    "title": "index.qmd",
-    "section": "Research Questions",
-    "text": "Research Questions\n\nCan monthly wildfire starts in Ventura County be modeled using SARIMA methods?\nCan external predictors improve the modeling of monthly acres burned?\nWhich environmental variables are most useful for explaining wildfire severity?"
-  },
-  {
-    "objectID": "index.html#data",
-    "href": "index.html#data",
-    "title": "index.qmd",
-    "section": "Data",
-    "text": "Data\nThe project uses monthly wildfire data from Ventura County along with external drought, weather, wind, and vegetation variables.\nThe main variables are:\n\nMonthly wildfire count\nMonthly total acres burned\nSPI drought categories\nNASA POWER weather variables\nSanta Ana-like wind indicators\nMODIS NDVI vegetation greenness"
-  },
-  {
-    "objectID": "index.html#methods",
-    "href": "index.html#methods",
-    "title": "index.qmd",
-    "section": "Methods",
-    "text": "Methods\nThe analysis uses two main models:\n\nSARIMA model for monthly wildfire starts\nARMAX model for monthly acres burned\n\nThe SARIMA model provides a baseline time series model using only past wildfire behavior. The ARMAX model adds external predictors to explain wildfire severity while still accounting for time dependence."
-  },
-  {
-    "objectID": "index.html#main-results",
-    "href": "index.html#main-results",
-    "title": "index.qmd",
-    "section": "Main Results",
-    "text": "Main Results\nThe selected SARIMA model for wildfire starts was:\n\\[\nARIMA(0,1,3)(0,0,1)_{12}\n\\]\nFor monthly acres burned, the ARMAX model selected three main predictors:\n\nLagged severe drought\nSanta Ana-like wind indicator\nMean NDVI\n\nThe ARMAX model improved AICc and BIC compared with the baseline SARIMA model for acres burned."
-  },
-  {
-    "objectID": "index.html#tools-used",
-    "href": "index.html#tools-used",
-    "title": "index.qmd",
-    "section": "Tools Used",
-    "text": "Tools Used\n\nR\nQuarto\nforecast\ndplyr\nggplot2\nMASS\ncar\nNASA POWER data\nMODIS NDVI data\nSPI drought data"
-  },
-  {
-    "objectID": "index.html#links",
-    "href": "index.html#links",
-    "title": "index.qmd",
-    "section": "Links",
-    "text": "Links\n\nFull Report\nGitHub Repository"
+    "objectID": "index.html#key-visuals",
+    "href": "index.html#key-visuals",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "",
+    "text": "Figure 1: Monthly wildfire starts in Ventura County, 2000–2020.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 2: Log-transformed monthly wildfire starts used for SARIMA modeling.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 3: Log-transformed monthly acres burned used for wildfire severity modeling."
   }
 ]
