@@ -48,7 +48,7 @@ This project analyzes monthly wildfire activity in Ventura County, California, f
 
 I modeled wildfire starts and wildfire severity separately because a month with many fires does not necessarily have the most acres burned.
 
-[Read the Full Report](PSTAT_174-Final_Project_Clean.pdf)
+[Read the Full Report](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis/blob/main/PSTAT_174-Final_Project_Clean.pdf)
 
 [View Source Code on GitHub](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis)
 

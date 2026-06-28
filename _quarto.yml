@@ -1,24 +1,20 @@
+```yaml
 project:
   type: website
   output-dir: docs
 
 website:
   title: "Ventura County Wildfire Analysis"
-  navbar:
-    left:
-      - href: index.qmd
-        text: Home
-      - href: PSTAT_174-Final_Project_Clean.qmd
-        text: Full Report
 
 format:
   html:
     theme: cyborg
-    toc: true
-    code-fold: true
-    code-tools: true
+    toc: false
+    code-fold: false
+    code-tools: false
 
 execute:
+  echo: false
   warning: false
   message: false
-  freeze: auto
+```
