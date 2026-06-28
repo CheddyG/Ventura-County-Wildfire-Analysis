@@ -6,122 +6,111 @@ format: html
 editor: visual
 ---
 
-```{r}
-#| label: setup
-#| include: false
+This project analyzes monthly wildfire activity in Ventura County, California from
+February 2000 through December 2020. I modeled wildfire starts and wildfire severity
+separately, using SARIMA for fire counts and ARMAX for acres burned. The ARMAX model
+showed that wildfire severity in Ventura County is meaningfully connected to drought
+conditions, Santa Ana-like wind events, and vegetation greenness — not just past fire
+behavior.
 
-library(readr)
-library(dplyr)
-library(lubridate)
-library(ggplot2)
-
-sample_start <- as.Date("2000-02-01")
-sample_end <- as.Date("2020-12-01")
-
-monthly_full <- read_csv(
-  "ventura_wildfires_monthly_1992_2020.csv",
-  show_col_types = FALSE
-) |>
-  mutate(month = as.Date(month))
-
-monthly_model <- monthly_full |>
-  filter(
-    month >= sample_start,
-    month <= sample_end
-  ) |>
-  mutate(
-    log_fire_count = log1p(fire_count),
-    log_acres = log1p(total_acres_burned)
-  )
-
-annual_model <- monthly_model |>
-  mutate(year = year(month)) |>
-  group_by(year) |>
-  summarise(
-    annual_fire_starts = sum(fire_count, na.rm = TRUE),
-    annual_acres_burned = sum(total_acres_burned, na.rm = TRUE),
-    .groups = "drop"
-  )
-```
-
-This project analyzes monthly wildfire activity in Ventura County, California, from February 2000 through December 2020.
-
-I modeled wildfire starts and wildfire severity separately because a month with many fires does not necessarily have the most acres burned.
+I chose Ventura County because it is my home county. It also happens to be well-suited
+for this kind of analysis: the fire records aggregate cleanly into monthly totals, the
+study period captures several major fire seasons, and publicly available environmental
+data from NOAA, NASA, and MODIS cover the region well.
 
 [Read the Full Report](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis/blob/main/PSTAT_174-Final_Project_Clean.pdf)
 
-[View Source Code on GitHub](https://github.com/CheddyG/Ventura-County-Wildfire-Analysis)
+---
 
 ## Project Overview
 
-### Research Question
+Wildfire counts and acres burned tell different stories. A month with many ignitions
+does not necessarily have the most acreage burned — a single wind-driven fire can
+dwarf an entire season of smaller ones. Modeling them separately lets each outcome
+be explained on its own terms.
 
-Can monthly wildfire starts be modeled using seasonal time-series methods, and can environmental conditions improve the modeling of wildfire severity?
+**Wildfire starts** were modeled using a seasonal ARIMA approach, capturing temporal
+autocorrelation and yearly seasonal structure in the fire count series.
 
-### Data
+**Wildfire severity** (total acres burned) was modeled using ARMAX — regression with
+ARIMA errors — so that environmental predictors could be incorporated while still
+accounting for time dependence in the residuals.
 
-The analysis combines monthly Ventura County wildfire records with drought, weather, Santa Ana-like wind, and NDVI vegetation data.
+---
 
-The study period includes 251 monthly observations from February 2000 through December 2020. The year 2000 is partial because the sample begins in February.
+## Data
 
-### Tools Used
+The wildfire records come from the USDA Forest Service Fire Program Analysis
+Fire-Occurrence Database, filtered to Ventura County and aggregated to monthly totals.
+The final sample contains 251 monthly observations.
 
-- R
-- tidyverse
-- ggplot2
-- SARIMA
-- ARMAX
-- Time-series diagnostics
-- Environmental feature engineering
+Environmental predictors for the ARMAX model were pulled from three sources:
 
-## Main Findings
+- **Drought:** NOAA SPI drought category data (D0–D4), with lags at 1, 3, and 6 months
+- **Weather:** NASA POWER daily data aggregated to monthly means — temperature, wind
+  speed, relative humidity, and a derived vapor pressure deficit
+- **Wind events:** A simplified Santa Ana wind indicator built from daily wind direction,
+  maximum wind speed, and relative humidity thresholds
+- **Vegetation:** MODIS NDVI (MOD13Q1) averaged over a 20km region around Ventura County
 
-- Monthly wildfire starts were modeled with **ARIMA(0,1,3)(0,0,1)[12]** after applying `log(1 + fire_count)`.
-- The wildfire-start model had a Ljung-Box p-value of **0.1224**, suggesting no strong remaining autocorrelation.
-- Monthly acres burned were modeled using an ARMAX model with lagged severe drought, Santa Ana-like wind conditions, and NDVI vegetation greenness.
-- The final ARMAX model used **ARIMA(1,0,1) errors**.
-- The ARMAX model improved on the baseline SARIMA model for acres burned.
+After merging all sources and creating lagged drought variables, the ARMAX dataset
+contains 248 complete monthly observations.
 
-| Model | AICc | BIC | Ljung-Box p-value |
-|---|---:|---:|---:|
-| SARIMA for wildfire starts | 467.92 | 485.28 | 0.1224 |
-| Baseline SARIMA for acres burned | 1094.54 | 1101.48 | — |
-| ARMAX for acres burned | 1065.62 | 1089.66 | 0.8344 |
+---
 
 ## Modeling Approach
 
-### Wildfire Starts
+### Wildfire Starts — SARIMA
 
-The wildfire-start model used monthly fire counts as the outcome. Because many months had zero fires and a few had much larger counts, I modeled:
+Monthly fire counts were log-transformed as `log(1 + fire_count)` to handle the
+zero-heavy distribution and reduce the influence of high-count months. Model selection
+followed the Box-Jenkins approach: ACF/PACF inspection, differencing tests with
+`ndiffs()` and `nsdiffs()`, and comparison of candidate models by AICc and BIC.
 
-`log(1 + fire_count)`
+The selected model was **ARIMA(0,1,3)(0,0,1)[12]** — one regular difference, three
+nonseasonal MA terms, and one seasonal MA term.
 
-The final model was:
+### Wildfire Severity — ARMAX
 
-`ARIMA(0,1,3)(0,0,1)[12]`
+Acres burned was also log-transformed as `log(1 + total_acres_burned)`. Candidate
+predictors included all drought lags, temperature, wind speed, humidity, VPD, the
+Santa Ana indicator, and NDVI. BIC stepwise selection (with `k = log(n)`) chose three
+final predictors: **lagged severe drought (D2 at 3 months), the Santa Ana wind flag,
+and mean NDVI.** VIF values were all near 1, so multicollinearity was not a concern.
 
-### Wildfire Severity
+The ARMAX model was fit using `auto.arima()` with the selected external regressors.
+The final error structure was **ARIMA(1,0,1)**.
 
-Wildfire severity was measured using total monthly acres burned. Since a small number of extreme wildfire months can dominate the original scale, I modeled:
+---
 
-`log(1 + total_acres_burned)`
+## Results
 
-The final ARMAX model included:
+| Model | AICc | BIC | Ljung-Box p-value |
+|---|---:|---:|---:|
+| SARIMA — wildfire starts | 467.92 | 485.28 | 0.1224 |
+| Baseline SARIMA — acres burned | 1094.54 | 1101.48 | — |
+| ARMAX — acres burned | 1065.62 | 1089.66 | 0.8344 |
 
-- `D2_lag3`: severe drought conditions lagged three months
-- `santa_ana_flag`: a Santa Ana-like wind indicator
-- `mean_ndvi`: vegetation greenness
+Both models passed residual diagnostics. The ARMAX model improved on the baseline
+SARIMA for acres burned by about 29 AICc points and 12 BIC points. The Ljung-Box
+p-value of 0.8344 indicates no meaningful remaining autocorrelation in the ARMAX
+residuals.
+
+The ARMAX coefficient signs all align with what fire behavior science would predict:
+severe drought at a 3-month lag increases severity, Santa Ana-like wind events increase
+severity, and higher vegetation greenness (NDVI) is associated with lower severity —
+likely reflecting reduced fuel load or wetter conditions.
+
+---
 
 ## Key Visuals
-
-### Monthly Wildfire Starts
 
 ```{r}
 #| label: fig-fire-count
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-cap: "Monthly wildfire starts in Ventura County, February 2000 through December 2020."
+#| fig-cap: "Monthly wildfire starts in Ventura County, February 2000–December 2020."
 #| fig-width: 10
 #| fig-height: 5
 
@@ -135,29 +124,6 @@ ggplot(monthly_model, aes(x = month, y = fire_count)) +
   theme_minimal()
 ```
 
-### Monthly Wildfire Severity
-
-```{r}
-#| label: fig-log-acres
-#| echo: false
-#| warning: false
-#| message: false
-#| fig-cap: "Log-transformed monthly acres burned."
-#| fig-width: 10
-#| fig-height: 5
-
-ggplot(monthly_model, aes(x = month, y = log_acres)) +
-  geom_line(linewidth = 0.6) +
-  labs(
-    title = "Monthly Wildfire Severity",
-    x = "Year",
-    y = "log(1 + acres burned)"
-  ) +
-  theme_minimal()
-```
-
-### Annual Acres Burned
-
 ```{r}
 #| label: fig-annual-acres
 #| echo: false
@@ -169,12 +135,8 @@ ggplot(monthly_model, aes(x = month, y = log_acres)) +
 
 ggplot(annual_model, aes(x = year, y = annual_acres_burned)) +
   geom_col() +
-  scale_x_continuous(
-    breaks = seq(2000, 2020, by = 4)
-  ) +
-  scale_y_continuous(
-    labels = scales::label_number(big.mark = ",")
-  ) +
+  scale_x_continuous(breaks = seq(2000, 2020, by = 4)) +
+  scale_y_continuous(labels = scales::label_number(big.mark = ",")) +
   labs(
     title = "Annual Wildfire Severity in Ventura County",
     x = "Year",
@@ -183,22 +145,24 @@ ggplot(annual_model, aes(x = year, y = annual_acres_burned)) +
   theme_minimal()
 ```
 
-## Interpretation
+---
 
-The results show why wildfire starts and acres burned should be treated as separate outcomes.
+## Limitations
 
-Monthly fire counts could be modeled reasonably well using a seasonal ARIMA model. Acres burned benefited from environmental predictors because wildfire severity is affected by drought, wind, and vegetation conditions in addition to past wildfire activity.
+This analysis works with county-level monthly totals, which smooths over a lot of
+local variation in terrain, fuel conditions, ignition sources, and suppression response.
+The Santa Ana wind variable is a simplified proxy rather than an official wind event
+classification. The NDVI signal reflects general vegetation greenness, not direct fuel
+moisture measurements.
 
-The ARMAX model improved AICc and BIC compared with the baseline time-series-only model for acres burned.
+Future extensions could include spatial modeling within the county, a more rigorous
+wind event dataset, direct fuel moisture data if available, and out-of-sample forecast
+evaluation.
 
-## Limitations and Future Work
-
-This analysis uses county-level monthly totals, so it cannot fully capture local variation in weather, fuels, terrain, ignition sources, and fire-suppression response.
-
-Future work could include more detailed wind data, direct fuel-moisture measurements, spatial wildfire modeling within Ventura County, and out-of-sample forecast evaluation.
+---
 
 ## Reproducibility
 
-The full report includes the data preparation process, model selection, diagnostic plots, forecast results, and appendix code.
-
-Data sources include the USDA Forest Service Fire Program Analysis Fire-Occurrence Database, NOAA drought data, NASA POWER weather data, and MODIS NDVI vegetation data.
+Data sources: USDA Forest Service FPA-FOD, NOAA SPI drought data, NASA POWER,
+MODIS MOD13Q1 NDVI. Full code, model diagnostics, and forecast results are in the
+report linked above.
