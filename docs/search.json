@@ -4,13 +4,55 @@
     "href": "index.html",
     "title": "Time Series Analysis of Ventura County Wildfires",
     "section": "",
-    "text": "Figure 1: Monthly wildfire starts in Ventura County, 2000–2020.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 2: Log-transformed monthly wildfire starts used for SARIMA modeling.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 3: Log-transformed monthly acres burned used for wildfire severity modeling."
+    "text": "This project analyzes monthly wildfire activity in Ventura County, California, from February 2000 through December 2020.\nI modeled wildfire starts and wildfire severity separately because a month with many fires does not necessarily have the most acres burned.\nRead the Full Report\nView Source Code on GitHub"
   },
   {
     "objectID": "index.html#key-visuals",
     "href": "index.html#key-visuals",
     "title": "Time Series Analysis of Ventura County Wildfires",
-    "section": "",
-    "text": "Figure 1: Monthly wildfire starts in Ventura County, 2000–2020.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 2: Log-transformed monthly wildfire starts used for SARIMA modeling.\n\n\n\n\n\n\n\n\n\n\n\n\n\nFigure 3: Log-transformed monthly acres burned used for wildfire severity modeling."
+    "section": "Key Visuals",
+    "text": "Key Visuals\n\nMonthly Wildfire Starts\n\n\n\n\n\n\n\n\nFigure 1: Monthly wildfire starts in Ventura County, February 2000 through December 2020.\n\n\n\n\n\n\n\nMonthly Wildfire Severity\n\n\n\n\n\n\n\n\nFigure 2: Log-transformed monthly acres burned.\n\n\n\n\n\n\n\nAnnual Acres Burned\n\n\n\n\n\n\n\n\nFigure 3: Annual acres burned in Ventura County."
+  },
+  {
+    "objectID": "index.html#project-overview",
+    "href": "index.html#project-overview",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Project Overview",
+    "text": "Project Overview\n\nResearch Question\nCan monthly wildfire starts be modeled using seasonal time-series methods, and can environmental conditions improve the modeling of wildfire severity?\n\n\nData\nThe analysis combines monthly Ventura County wildfire records with drought, weather, Santa Ana-like wind, and NDVI vegetation data.\nThe study period includes 251 monthly observations from February 2000 through December 2020. The year 2000 is partial because the sample begins in February.\n\n\nTools Used\n\nR\ntidyverse\nggplot2\nSARIMA\nARMAX\nTime-series diagnostics\nEnvironmental feature engineering"
+  },
+  {
+    "objectID": "index.html#main-findings",
+    "href": "index.html#main-findings",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Main Findings",
+    "text": "Main Findings\n\nMonthly wildfire starts were modeled with ARIMA(0,1,3)(0,0,1)[12] after applying log(1 + fire_count).\nThe wildfire-start model had a Ljung-Box p-value of 0.1224, suggesting no strong remaining autocorrelation.\nMonthly acres burned were modeled using an ARMAX model with lagged severe drought, Santa Ana-like wind conditions, and NDVI vegetation greenness.\nThe final ARMAX model used ARIMA(1,0,1) errors.\nThe ARMAX model improved on the baseline SARIMA model for acres burned.\n\n\n\n\nModel\nAICc\nBIC\nLjung-Box p-value\n\n\n\n\nSARIMA for wildfire starts\n467.92\n485.28\n0.1224\n\n\nBaseline SARIMA for acres burned\n1094.54\n1101.48\n—\n\n\nARMAX for acres burned\n1065.62\n1089.66\n0.8344"
+  },
+  {
+    "objectID": "index.html#modeling-approach",
+    "href": "index.html#modeling-approach",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Modeling Approach",
+    "text": "Modeling Approach\n\nWildfire Starts\nThe wildfire-start model used monthly fire counts as the outcome. Because many months had zero fires and a few had much larger counts, I modeled:\nlog(1 + fire_count)\nThe final model was:\nARIMA(0,1,3)(0,0,1)[12]\n\n\nWildfire Severity\nWildfire severity was measured using total monthly acres burned. Since a small number of extreme wildfire months can dominate the original scale, I modeled:\nlog(1 + total_acres_burned)\nThe final ARMAX model included:\n\nD2_lag3: severe drought conditions lagged three months\nsanta_ana_flag: a Santa Ana-like wind indicator\nmean_ndvi: vegetation greenness"
+  },
+  {
+    "objectID": "index.html#interpretation",
+    "href": "index.html#interpretation",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Interpretation",
+    "text": "Interpretation\nThe results show why wildfire starts and acres burned should be treated as separate outcomes.\nMonthly fire counts could be modeled reasonably well using a seasonal ARIMA model. Acres burned benefited from environmental predictors because wildfire severity is affected by drought, wind, and vegetation conditions in addition to past wildfire activity.\nThe ARMAX model improved AICc and BIC compared with the baseline time-series-only model for acres burned."
+  },
+  {
+    "objectID": "index.html#limitations-and-future-work",
+    "href": "index.html#limitations-and-future-work",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Limitations and Future Work",
+    "text": "Limitations and Future Work\nThis analysis uses county-level monthly totals, so it cannot fully capture local variation in weather, fuels, terrain, ignition sources, and fire-suppression response.\nFuture work could include more detailed wind data, direct fuel-moisture measurements, spatial wildfire modeling within Ventura County, and out-of-sample forecast evaluation."
+  },
+  {
+    "objectID": "index.html#reproducibility",
+    "href": "index.html#reproducibility",
+    "title": "Time Series Analysis of Ventura County Wildfires",
+    "section": "Reproducibility",
+    "text": "Reproducibility\nThe full report includes the data preparation process, model selection, diagnostic plots, forecast results, and appendix code.\nData sources include the USDA Forest Service Fire Program Analysis Fire-Occurrence Database, NOAA drought data, NASA POWER weather data, and MODIS NDVI vegetation data."
   }
 ]
